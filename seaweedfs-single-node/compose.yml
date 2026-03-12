@@ -1,0 +1,124 @@
+services:
+  master:
+    image: chrislusf/seaweedfs # use a remote image
+    container_name: seaweedfs_master
+    restart: unless-stopped
+    command: >
+      master
+      -metricsPort=9324
+      -ip=master
+      -ip.bind=0.0.0.0
+      -volumeSizeLimitMB=1024
+      -volumePreallocate=false
+    environment:
+      WEED_MASTER_VOLUME_GROWTH_COPY_1: 1
+      WEED_MASTER_VOLUME_GROWTH_COPY_2: 1
+      WEED_MASTER_VOLUME_GROWTH_COPY_OTHER: 1
+    networks:
+      - monitoring
+
+  volume:
+    image: chrislusf/seaweedfs # use a remote image
+    container_name: seaweedfs_volume
+    networks:
+      - monitoring
+    restart: unless-stopped
+    command: >
+      volume
+      -ip=volume
+      -metricsPort=9324
+      -master="master:9333"
+      -ip.bind=0.0.0.0
+      -port=8080
+      -dir=/data
+      -max=256
+    volumes:
+      - seaweed_volume_data:/data
+    depends_on:
+      - master
+
+  filer:
+    image: chrislusf/seaweedfs # use a remote image
+    container_name: seaweedfs_filer
+    restart: unless-stopped
+    networks:
+      - monitoring
+    command: >
+      filer
+      -metricsPort=9324
+      -ip=filer
+      -master="master:9333"
+      -ip.bind=0.0.0.0
+      -port=8888
+    volumes:
+      - seaweed_filer_data:/data
+    tty: true
+    stdin_open: true
+    depends_on:
+      - master
+      - volume
+
+  admin:
+    image: chrislusf/seaweedfs # use a remote image
+    container_name: seaweedfs_admin
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    command: >
+      admin
+      -masters="master:9333"
+      -port=23646
+      -dataDir=/data
+      -adminUser=${ADMIN_USER} \
+      -adminPassword=${ADMIN_PASS}
+    volumes:
+      - seaweed_admin_data:/data
+    depends_on:
+      - master
+    labels:
+      traefik.enable: true
+      traefik.docker.network: proxy
+      traefik.http.routers.admin.rule: Host(`${ADMIN_HOST}`)
+      traefik.http.routers.admin.entrypoints: https
+      traefik.http.routers.admin.tls.certresolver: cloudflare
+      traefik.http.services.admin.loadbalancer.server.port: 23646
+
+  s3:
+    image: chrislusf/seaweedfs # use a remote image
+    restart: unless-stopped
+    container_name: seaweedfs_s3
+    networks:
+      - monitoring
+      - proxy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+    command: >
+      s3
+      -metricsPort=9324
+      -filer="filer:8888"
+      -ip.bind=0.0.0.0
+      -port=8333
+    depends_on:
+      - master
+      - volume
+      - filer
+    labels:
+      traefik.enable: true
+      traefik.docker.network: proxy
+      traefik.http.routers.s3.rule: Host(`${S3_HOST}`)
+      traefik.http.routers.s3.entrypoints: https
+      traefik.http.routers.s3.tls.certresolver: cloudflare
+      traefik.http.services.s3.loadbalancer.server.port: 8333
+
+networks:
+  proxy:
+    external: true
+  monitoring:
+    external: true
+
+volumes:
+  seaweed_volume_data:
+  seaweed_filer_data:
+  seaweed_admin_data:
