@@ -50,6 +50,7 @@ services:
       -master="master:9333"
       -ip.bind=0.0.0.0
       -port=8888
+      -s3.iam.readOnly=false
     volumes:
       - seaweed_filer_data:/data
     tty: true
