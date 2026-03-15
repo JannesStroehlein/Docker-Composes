@@ -1,6 +1,6 @@
 services:
   master:
-    image: chrislusf/seaweedfs # use a remote image
+    image: chrislusf/seaweedfs:${SEAWEEDFS_TAG} # use a remote image
     container_name: seaweedfs_master
     restart: unless-stopped
     command: >
