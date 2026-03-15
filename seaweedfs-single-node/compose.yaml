@@ -18,7 +18,7 @@ services:
       - monitoring
 
   volume:
-    image: chrislusf/seaweedfs # use a remote image
+    image: chrislusf/seaweedfs:${SEAWEEDFS_TAG} # use a remote image
     container_name: seaweedfs_volume
     networks:
       - monitoring
@@ -38,7 +38,7 @@ services:
       - master
 
   filer:
-    image: chrislusf/seaweedfs # use a remote image
+    image: chrislusf/seaweedfs:${SEAWEEDFS_TAG} # use a remote image
     container_name: seaweedfs_filer
     restart: unless-stopped
     networks:
@@ -60,7 +60,7 @@ services:
       - volume
 
   admin:
-    image: chrislusf/seaweedfs # use a remote image
+    image: chrislusf/seaweedfs:${SEAWEEDFS_TAG} # use a remote image
     container_name: seaweedfs_admin
     restart: unless-stopped
     networks:
@@ -86,7 +86,7 @@ services:
       traefik.http.services.admin.loadbalancer.server.port: 23646
 
   s3:
-    image: chrislusf/seaweedfs # use a remote image
+    image: chrislusf/seaweedfs:${SEAWEEDFS_TAG} # use a remote image
     restart: unless-stopped
     container_name: seaweedfs_s3
     networks:
